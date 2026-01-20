@@ -1,19 +1,31 @@
-import { createClient } from '@supabase/supabase-js';
+
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Project, SiteSettings } from '../types.ts';
 
-const supabaseUrl = (window as any).process?.env?.SUPABASE_URL || '';
-const supabaseAnonKey = (window as any).process?.env?.SUPABASE_ANON_KEY || '';
+let cachedClient: SupabaseClient | null = null;
 
-// Initialize client only if config is available
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey) 
-  : null;
+const getClient = (): SupabaseClient | null => {
+  if (cachedClient) return cachedClient;
+
+  const env = (window as any).process?.env || {};
+  const url = env.SUPABASE_URL || '';
+  const key = env.SUPABASE_ANON_KEY || '';
+
+  if (url && key) {
+    cachedClient = createClient(url, key);
+    return cachedClient;
+  }
+  return null;
+};
 
 export const dbService = {
   checkHealth: async (): Promise<{ db: 'online' | 'offline' | 'unconfigured', ai: 'ready' | 'missing_key' }> => {
-    const aiKey = (window as any).process?.env?.API_KEY || '';
+    // Force a re-check of environment variables for AI key as well
+    const env = (window as any).process?.env || {};
+    const aiKey = env.API_KEY || '';
     const aiStatus = aiKey ? 'ready' : 'missing_key';
 
+    const supabase = getClient();
     if (!supabase) return { db: 'unconfigured', ai: aiStatus };
 
     try {
@@ -27,17 +39,14 @@ export const dbService = {
   },
 
   getProjects: async (): Promise<Project[]> => {
+    const supabase = getClient();
     if (!supabase) return [];
     const { data, error } = await supabase
       .from('projects')
       .select('*')
       .order('created_at', { ascending: false });
     
-    if (error) {
-      console.error("Supabase Projects Error:", error);
-      return [];
-    }
-    
+    if (error) return [];
     return data.map(p => ({
       id: p.id,
       title: p.title,
@@ -49,6 +58,7 @@ export const dbService = {
   },
 
   saveProject: async (project: Omit<Project, 'id' | 'createdAt'>): Promise<any> => {
+    const supabase = getClient();
     if (!supabase) throw new Error("Database not connected");
     const { data, error } = await supabase
       .from('projects')
@@ -65,6 +75,7 @@ export const dbService = {
   },
 
   updateProject: async (id: string, updates: Partial<Project>): Promise<void> => {
+    const supabase = getClient();
     if (!supabase) throw new Error("Database not connected");
     const payload: any = {};
     if (updates.title) payload.title = updates.title;
@@ -72,31 +83,27 @@ export const dbService = {
     if (updates.imageUrls) payload.image_urls = updates.imageUrls;
     if (updates.description) payload.description = updates.description;
 
-    const { error } = await supabase
-      .from('projects')
-      .update(payload)
-      .eq('id', id);
-    
+    const { error } = await supabase.from('projects').update(payload).eq('id', id);
     if (error) throw error;
   },
 
   deleteProject: async (id: string): Promise<void> => {
+    const supabase = getClient();
     if (!supabase) throw new Error("Database not connected");
-    const { error } = await supabase
-      .from('projects')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('projects').delete().eq('id', id);
     if (error) throw error;
   },
 
   getSettings: async (): Promise<SiteSettings> => {
+    const supabase = getClient();
     if (!supabase) {
       return {
         id: 'fallback',
         siteName: 'KEVIN MAULANA',
         designerName: 'Kevin Maulana',
         bio: 'Portfolio configuration pending...',
-        heroSubtext: 'HELLO I AM KEVIN MAULANA. DESIGNER FOCUSED ON VISUAL IMPACT.',
+        heroSubtext: 'PLEASE CONFIGURE SUPABASE URL AND KEY IN ENVIRONMENT VARIABLES.',
+        heroImage: '',
         contactEmail: 'hello@example.com',
         socialLinks: [],
         instagramUrl: '',
@@ -115,14 +122,22 @@ export const dbService = {
       .single();
     
     if (error) {
-      console.error("Supabase Settings Error:", error);
-      return {
-        siteName: 'PORTFOLIO',
-        designerName: 'Designer',
-        hideAdminLink: false
+      // Fix: Return a complete SiteSettings object to avoid casting errors
+      return { 
+        id: 'error-fallback',
+        siteName: 'PORTFOLIO', 
+        designerName: 'Designer', 
+        bio: '',
+        heroImage: '',
+        contactEmail: '',
+        socialLinks: [],
+        instagramUrl: '',
+        behanceUrl: '',
+        hideAdminLink: false 
       } as SiteSettings;
     }
 
+    // Fix: Added missing instagramUrl, behanceUrl and mapped recoveryToken correctly
     return {
       id: data.id,
       siteName: data.site_name,
@@ -133,6 +148,8 @@ export const dbService = {
       heroImages: data.hero_images || [],
       contactEmail: data.contact_email,
       socialLinks: data.social_links || [],
+      instagramUrl: data.instagram_url || '',
+      behanceUrl: data.behance_url || '',
       phone: data.phone,
       location: data.location,
       capabilities: data.capabilities,
@@ -143,6 +160,7 @@ export const dbService = {
   },
 
   updateSettings: async (updates: Partial<SiteSettings>): Promise<void> => {
+    const supabase = getClient();
     if (!supabase) throw new Error("Database not connected");
     const settings = await dbService.getSettings();
     const payload: any = {};
@@ -156,17 +174,16 @@ export const dbService = {
     if (updates.location !== undefined) payload.location = updates.location;
     if (updates.capabilities !== undefined) payload.capabilities = updates.capabilities;
     if (updates.socialLinks !== undefined) payload.social_links = updates.socialLinks;
+    // Fix: Added instagramUrl and behanceUrl to update payload
+    if (updates.instagramUrl !== undefined) payload.instagram_url = updates.instagramUrl;
+    if (updates.behanceUrl !== undefined) payload.behance_url = updates.behanceUrl;
     if (updates.adminPassword !== undefined) payload.admin_password = updates.adminPassword;
     if (updates.recoveryToken !== undefined) payload.recovery_token = updates.recoveryToken;
     if (updates.hideAdminLink !== undefined) payload.hide_admin_link = updates.hideAdminLink;
     if (updates.heroImages !== undefined) payload.hero_images = updates.heroImages;
     if (updates.heroImage !== undefined) payload.hero_image = updates.heroImage;
 
-    const { error } = await supabase
-      .from('site_settings')
-      .update(payload)
-      .eq('id', settings.id);
-    
+    const { error } = await supabase.from('site_settings').update(payload).eq('id', settings.id);
     if (error) throw error;
     window.dispatchEvent(new Event('storage'));
   }
