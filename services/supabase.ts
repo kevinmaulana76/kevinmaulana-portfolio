@@ -1,117 +1,149 @@
+import { createClient } from '@supabase/supabase-js';
 import { Project, SiteSettings } from '../types.ts';
 
-// Note: To use real Supabase, you would typically import { createClient } from '@supabase/supabase-js'
-// But for this environment, we'll implement a robust persistent layer that mimics it 
-// and can be easily swapped for a real client.
+const supabaseUrl = (window as any).process?.env?.SUPABASE_URL || '';
+const supabaseAnonKey = (window as any).process?.env?.SUPABASE_ANON_KEY || '';
 
-const STORAGE_KEY_PROJECTS = 'kevin_portfolio_projects_v1';
-const STORAGE_KEY_SETTINGS = 'kevin_portfolio_settings_v1';
+// Inisialisasi client hanya jika konfigurasi tersedia
+export const supabase = (supabaseUrl && supabaseAnonKey) 
+  ? createClient(supabaseUrl, supabaseAnonKey) 
+  : null;
 
-const initialSettings: SiteSettings = {
-  id: '1',
-  siteName: 'KEVIN MAULANA',
-  designerName: 'Kevin Maulana',
-  bio: 'Specializing in high-impact social media aesthetics and minimalist poster art. Kevin bridges the gap between commercial branding and experimental visual storytelling.',
-  heroImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
-  heroImages: [
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=1000&auto=format&fit=crop',
-    'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1000&auto=format&fit=crop'
-  ],
-  contactEmail: 'hello@kevinmaulana.com',
-  instagramUrl: 'https://instagram.com/kevinmaulana',
-  behanceUrl: '#',
-  socialLinks: [
-    { id: '1', label: 'Instagram', url: 'https://instagram.com/kevinmaulana' },
-    { id: '2', label: 'Behance', url: '#' },
-    { id: '3', label: 'Dribbble', url: '#' }
-  ],
-  phone: '+62 812 3456 7890',
-  location: 'Jakarta, Indonesia',
-  capabilities: 'Social Media Design\nPoster Art\nTypography\nBrand Identity',
-  adminPassword: 'admin',
-  recoveryToken: 'KEVIN_2024_RECOVERY',
-  hideAdminLink: false
-};
-
-const initialProjects: Project[] = [
-  {
-    id: '1',
-    title: 'Future Rhythms',
-    category: 'Social Media',
-    imageUrls: ['https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop'],
-    description: 'Exploration of neo-brutalist typography for electronic music event series.',
-    createdAt: Date.now() - 1000
-  },
-  {
-    id: '2',
-    title: 'Visual Noise',
-    category: 'Typography',
-    imageUrls: ['https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=1000&auto=format&fit=crop'],
-    description: 'Experimental typographic layout focusing on negative space and texture.',
-    createdAt: Date.now() - 2000
-  }
-];
+if (!supabase) {
+  console.warn("Supabase Configuration Missing: Database features will be disabled until SUPABASE_URL and SUPABASE_ANON_KEY are provided in environment variables.");
+}
 
 export const dbService = {
   getProjects: async (): Promise<Project[]> => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY_PROJECTS);
-      if (!data) {
-        localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(initialProjects));
-        return initialProjects;
-      }
-      return JSON.parse(data).sort((a: Project, b: Project) => b.createdAt - a.createdAt);
-    } catch (e) {
-      console.error("DB Error:", e);
-      return initialProjects;
+    if (!supabase) return [];
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Supabase Projects Error:", error);
+      return [];
     }
+    
+    return data.map(p => ({
+      id: p.id,
+      title: p.title,
+      category: p.category,
+      imageUrls: p.image_urls,
+      description: p.description,
+      createdAt: new Date(p.created_at).getTime()
+    }));
   },
 
-  saveProject: async (project: Omit<Project, 'id' | 'createdAt'>): Promise<Project> => {
-    const projects = await dbService.getProjects();
-    const newProject: Project = {
-      ...project,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: Date.now()
-    };
-    projects.unshift(newProject);
-    localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(projects));
-    return newProject;
+  saveProject: async (project: Omit<Project, 'id' | 'createdAt'>): Promise<any> => {
+    if (!supabase) throw new Error("Database not connected");
+    const { data, error } = await supabase
+      .from('projects')
+      .insert([{
+        title: project.title,
+        category: project.category,
+        image_urls: project.imageUrls,
+        description: project.description
+      }])
+      .select();
+    
+    if (error) throw error;
+    return data[0];
   },
 
   updateProject: async (id: string, updates: Partial<Project>): Promise<void> => {
-    const projects = await dbService.getProjects();
-    const index = projects.findIndex(p => p.id === id);
-    if (index !== -1) {
-      projects[index] = { ...projects[index], ...updates };
-      localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(projects));
-    }
+    if (!supabase) throw new Error("Database not connected");
+    const payload: any = {};
+    if (updates.title) payload.title = updates.title;
+    if (updates.category) payload.category = updates.category;
+    if (updates.imageUrls) payload.image_urls = updates.imageUrls;
+    if (updates.description) payload.description = updates.description;
+
+    const { error } = await supabase
+      .from('projects')
+      .update(payload)
+      .eq('id', id);
+    
+    if (error) throw error;
   },
 
   deleteProject: async (id: string): Promise<void> => {
-    const projects = await dbService.getProjects();
-    const filtered = projects.filter(p => p.id !== id);
-    localStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(filtered));
+    if (!supabase) throw new Error("Database not connected");
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   },
 
   getSettings: async (): Promise<SiteSettings> => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEY_SETTINGS);
-      if (!data) {
-        localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(initialSettings));
-        return initialSettings;
-      }
-      return JSON.parse(data);
-    } catch (e) {
-      return initialSettings;
+    if (!supabase) {
+      // Fallback data jika database belum siap
+      return {
+        id: 'fallback',
+        siteName: 'KEVIN MAULANA',
+        designerName: 'Kevin Maulana',
+        bio: 'Portfolio configuration pending...',
+        contactEmail: 'hello@example.com',
+        socialLinks: [],
+        instagramUrl: '',
+        behanceUrl: '',
+        capabilities: 'Designer',
+        adminPassword: 'admin',
+        recoveryToken: 'RECOVERY'
+      } as SiteSettings;
     }
+
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('*')
+      .limit(1)
+      .single();
+    
+    if (error) {
+      console.error("Supabase Settings Error:", error);
+      return {} as SiteSettings;
+    }
+
+    return {
+      id: data.id,
+      siteName: data.site_name,
+      designerName: data.designer_name,
+      bio: data.bio,
+      heroImage: data.hero_image,
+      heroImages: data.hero_images,
+      contactEmail: data.contact_email,
+      socialLinks: data.social_links,
+      phone: data.phone,
+      location: data.location,
+      capabilities: data.capabilities,
+      adminPassword: data.admin_password,
+      recoveryToken: data.recovery_token
+    } as SiteSettings;
   },
 
   updateSettings: async (updates: Partial<SiteSettings>): Promise<void> => {
+    if (!supabase) throw new Error("Database not connected");
     const settings = await dbService.getSettings();
-    const updated = { ...settings, ...updates };
-    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(updated));
+    const payload: any = {};
+    
+    if (updates.siteName !== undefined) payload.site_name = updates.siteName;
+    if (updates.designerName !== undefined) payload.designer_name = updates.designerName;
+    if (updates.bio !== undefined) payload.bio = updates.bio;
+    if (updates.contactEmail !== undefined) payload.contact_email = updates.contactEmail;
+    if (updates.phone !== undefined) payload.phone = updates.phone;
+    if (updates.location !== undefined) payload.location = updates.location;
+    if (updates.capabilities !== undefined) payload.capabilities = updates.capabilities;
+    if (updates.socialLinks !== undefined) payload.social_links = updates.socialLinks;
+    if (updates.adminPassword !== undefined) payload.admin_password = updates.adminPassword;
+
+    const { error } = await supabase
+      .from('site_settings')
+      .update(payload)
+      .eq('id', settings.id);
+    
+    if (error) throw error;
     window.dispatchEvent(new Event('storage'));
   }
 };
