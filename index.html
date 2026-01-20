@@ -10,7 +10,6 @@
   <script>
     /**
      * Essential Shims for Browser ESM
-     * Prevents "process is not defined" crashes in certain libraries.
      */
     window.process = { 
       env: { 
@@ -20,8 +19,7 @@
     };
     
     /**
-     * Global Error Catching
-     * Surfaces deployment-specific errors (like ESM resolution issues) directly in the UI.
+     * Global Error Catching for Vercel Deployments
      */
     window.addEventListener('error', function(event) {
       console.error('Bootstrap Error:', event.error);
@@ -30,7 +28,9 @@
         root.innerHTML = `
           <div style="padding: 40px; color: #fff; background: #000; font-family: 'Space Grotesk', sans-serif; text-align: center; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <h1 style="font-family: Anton, sans-serif; font-size: 3rem; color: #f00; margin-bottom: 20px;">SYSTEM HALTED</h1>
-            <p style="opacity: 0.6; max-width: 500px; line-height: 1.6; font-family: monospace; font-size: 0.8rem;">${event.message || 'Check browser console for detailed stack trace'}</p>
+            <p style="opacity: 0.6; max-width: 500px; line-height: 1.6; font-family: monospace; font-size: 0.8rem;">
+              ${event.message || 'Check browser console for detailed stack trace'}
+            </p>
             <button onclick="location.reload()" style="margin-top: 30px; padding: 10px 20px; border: 1px solid #fff; background: none; color: #fff; cursor: pointer; text-transform: uppercase; font-weight: bold;">Reboot System</button>
           </div>
         `;
@@ -85,7 +85,6 @@
 </head>
 <body class="antialiased overflow-x-hidden">
   <div id="root"></div>
-  <!-- Entry point loaded as ESM module -->
   <script type="module" src="index.tsx"></script>
 </body>
 </html>
