@@ -1,16 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const generateDescription = async (title: string, category: string): Promise<string> => {
-  // Safely check for the API key in a browser-native way
-  const apiKey = (window as any).process?.env?.API_KEY || '';
-  
-  if (!apiKey) {
-    console.warn("Gemini API Key missing. Skipping AI generation to prevent crash.");
-    return "A high-impact design focusing on modern aesthetics and clear visual communication.";
-  }
-
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    // Always use new GoogleGenAI({apiKey: process.env.API_KEY}) as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Use gemini-3-flash-preview for basic text tasks like writing project descriptions
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `You are a professional graphic design critic and copywriter. 
@@ -19,11 +14,13 @@ export const generateDescription = async (title: string, category: string): Prom
       config: {
         temperature: 0.7,
         topP: 0.95,
-        maxOutputTokens: 100,
+        // Recommended: omit maxOutputTokens unless a specific limit is needed with a thinkingBudget
       }
     });
 
-    return response.text.trim() || "A stunning visual exploration of modern design principles.";
+    // Directly access the .text property of GenerateContentResponse
+    const text = response.text;
+    return text?.trim() || "A stunning visual exploration of modern design principles.";
   } catch (error) {
     console.error("Gemini AI Error:", error);
     return "A high-impact design focusing on modern aesthetics and clear visual communication.";

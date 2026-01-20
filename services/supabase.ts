@@ -4,16 +4,28 @@ import { Project, SiteSettings } from '../types.ts';
 const supabaseUrl = (window as any).process?.env?.SUPABASE_URL || '';
 const supabaseAnonKey = (window as any).process?.env?.SUPABASE_ANON_KEY || '';
 
-// Inisialisasi client hanya jika konfigurasi tersedia
+// Initialize client only if config is available
 export const supabase = (supabaseUrl && supabaseAnonKey) 
   ? createClient(supabaseUrl, supabaseAnonKey) 
   : null;
 
-if (!supabase) {
-  console.warn("Supabase Configuration Missing: Database features will be disabled until SUPABASE_URL and SUPABASE_ANON_KEY are provided in environment variables.");
-}
-
 export const dbService = {
+  checkHealth: async (): Promise<{ db: 'online' | 'offline' | 'unconfigured', ai: 'ready' | 'missing_key' }> => {
+    const aiKey = (window as any).process?.env?.API_KEY || '';
+    const aiStatus = aiKey ? 'ready' : 'missing_key';
+
+    if (!supabase) return { db: 'unconfigured', ai: aiStatus };
+
+    try {
+      const { error } = await supabase.from('site_settings').select('id').limit(1);
+      if (error) throw error;
+      return { db: 'online', ai: aiStatus };
+    } catch (e) {
+      console.error("Health Check Failed:", e);
+      return { db: 'offline', ai: aiStatus };
+    }
+  },
+
   getProjects: async (): Promise<Project[]> => {
     if (!supabase) return [];
     const { data, error } = await supabase
@@ -79,7 +91,6 @@ export const dbService = {
 
   getSettings: async (): Promise<SiteSettings> => {
     if (!supabase) {
-      // Fallback data jika database belum siap
       return {
         id: 'fallback',
         siteName: 'KEVIN MAULANA',
@@ -91,7 +102,8 @@ export const dbService = {
         behanceUrl: '',
         capabilities: 'Designer',
         adminPassword: 'admin',
-        recoveryToken: 'RECOVERY'
+        recoveryToken: 'RECOVERY',
+        hideAdminLink: false
       } as SiteSettings;
     }
 
@@ -103,7 +115,11 @@ export const dbService = {
     
     if (error) {
       console.error("Supabase Settings Error:", error);
-      return {} as SiteSettings;
+      return {
+        siteName: 'PORTFOLIO',
+        designerName: 'Designer',
+        hideAdminLink: false
+      } as SiteSettings;
     }
 
     return {
@@ -114,12 +130,13 @@ export const dbService = {
       heroImage: data.hero_image,
       heroImages: data.hero_images,
       contactEmail: data.contact_email,
-      socialLinks: data.social_links,
+      socialLinks: data.social_links || [],
       phone: data.phone,
       location: data.location,
       capabilities: data.capabilities,
       adminPassword: data.admin_password,
-      recoveryToken: data.recovery_token
+      recoveryToken: data.recovery_token,
+      hideAdminLink: data.hide_admin_link
     } as SiteSettings;
   },
 
@@ -137,6 +154,8 @@ export const dbService = {
     if (updates.capabilities !== undefined) payload.capabilities = updates.capabilities;
     if (updates.socialLinks !== undefined) payload.social_links = updates.socialLinks;
     if (updates.adminPassword !== undefined) payload.admin_password = updates.adminPassword;
+    if (updates.recoveryToken !== undefined) payload.recovery_token = updates.recoveryToken;
+    if (updates.hideAdminLink !== undefined) payload.hide_admin_link = updates.hideAdminLink;
 
     const { error } = await supabase
       .from('site_settings')

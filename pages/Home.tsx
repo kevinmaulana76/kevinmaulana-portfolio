@@ -3,7 +3,8 @@ import { dbService } from '../services/supabase.ts';
 import { Project, SiteSettings, DESIGN_CATEGORIES, DesignCategory } from '../types.ts';
 import { ImageWithFallback } from '../components/ImageWithFallback.tsx';
 import { ProjectCard } from '../components/ProjectCard.tsx';
-import { getSocialIcon } from '../App.tsx';
+// Fix: Import getSocialIcon from utils/helpers.ts instead of App.tsx which does not export it
+import { getSocialIcon } from '../utils/helpers.ts';
 
 // --- SECTIONS ---
 
