@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { dbService } from '../services/supabase';
 import { Project, SiteSettings, DESIGN_CATEGORIES, DesignCategory, SocialLink } from '../types';
 import { generateDescription } from '../services/gemini';
-import { getSocialIcon } from '../App';
+import { getSocialIcon } from '../utils/icons';
 
 // --- UTILITIES ---
 

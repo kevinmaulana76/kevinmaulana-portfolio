@@ -4,7 +4,7 @@ import { dbService } from '../services/supabase';
 import { Project, SiteSettings, DESIGN_CATEGORIES, DesignCategory } from '../types';
 import { ImageWithFallback } from '../components/ImageWithFallback';
 import { ProjectCard } from '../components/ProjectCard';
-import { getSocialIcon } from '../App';
+import { getSocialIcon } from '../utils/icons';
 
 // --- SECTIONS ---
 

@@ -2,7 +2,13 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const generateDescription = async (title: string, category: string): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    console.warn("API_KEY is not configured. Returning fallback description.");
+    return "A high-impact design focusing on modern aesthetics and clear visual communication.";
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   
   try {
     const response = await ai.models.generateContent({
