@@ -1,7 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
-import { Project } from '../types';
-import { ImageWithFallback } from './ImageWithFallback';
+import { Project } from '../types.ts';
+import { ImageWithFallback } from './ImageWithFallback.tsx';
 
 interface Props {
   project: Project;
@@ -17,7 +16,7 @@ export const ProjectCard: React.FC<Props> = ({ project }) => {
   
   const images = project.imageUrls || [];
   const threshold = 50;
-  const AUTO_SLIDE_DELAY = 4000; // 4 seconds
+  const AUTO_SLIDE_DELAY = 4000;
 
   const nextImage = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -31,18 +30,12 @@ export const ProjectCard: React.FC<Props> = ({ project }) => {
     setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
   };
 
-  // Auto-slide effect
   useEffect(() => {
     if (images.length <= 1 || isDragging || isHovered) return;
-
-    const timer = setInterval(() => {
-      nextImage();
-    }, AUTO_SLIDE_DELAY);
-
+    const timer = setInterval(() => { nextImage(); }, AUTO_SLIDE_DELAY);
     return () => clearInterval(timer);
   }, [images.length, isDragging, isHovered, currentIndex]);
 
-  // Drag/Swipe Handlers
   const handleStart = (clientX: number) => {
     if (images.length <= 1) return;
     setIsDragging(true);
@@ -58,54 +51,34 @@ export const ProjectCard: React.FC<Props> = ({ project }) => {
 
   const handleEnd = () => {
     if (!isDragging) return;
-    
     if (dragOffset < -threshold && currentIndex < images.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else if (dragOffset > threshold && currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
     }
-    
     setIsDragging(false);
     setDragOffset(0);
   };
 
-  // Mouse Events
-  const onMouseDown = (e: React.MouseEvent) => handleStart(e.clientX);
-  const onMouseMove = (e: React.MouseEvent) => handleMove(e.clientX);
-  const onMouseUp = () => handleEnd();
-  const onMouseLeave = () => {
-    setIsHovered(false);
-    if (isDragging) handleEnd();
-  };
-  const onMouseEnter = () => setIsHovered(true);
-
-  // Touch Events
-  const onTouchStart = (e: React.TouchEvent) => handleStart(e.touches[0].clientX);
-  const onTouchMove = (e: React.TouchEvent) => handleMove(e.touches[0].clientX);
-  const onTouchEnd = () => handleEnd();
-
   return (
     <div 
       className="group relative border-poster p-1 mb-8 bg-black select-none"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => { setIsHovered(false); if(isDragging) handleEnd(); }}
     >
       <div 
         ref={sliderRef}
         className={`relative aspect-[4/5] overflow-hidden bg-zinc-900 ${images.length > 1 ? 'cursor-grab' : ''} ${isDragging ? 'cursor-grabbing' : ''}`}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
+        onMouseDown={(e) => handleStart(e.clientX)}
+        onMouseMove={(e) => handleMove(e.clientX)}
+        onMouseUp={handleEnd}
+        onTouchStart={(e) => handleStart(e.touches[0].clientX)}
+        onTouchMove={(e) => handleMove(e.touches[0].clientX)}
+        onTouchEnd={handleEnd}
       >
-        {/* Slider Track */}
         <div 
           className={`flex h-full w-full transition-transform duration-500 ease-out ${isDragging ? 'transition-none' : ''}`}
-          style={{ 
-            transform: `translateX(calc(-${currentIndex * 100}% + ${dragOffset}px))`,
-          }}
+          style={{ transform: `translateX(calc(-${currentIndex * 100}% + ${dragOffset}px))` }}
         >
           {images.map((url, idx) => (
             <div key={idx} className="w-full h-full flex-shrink-0 pointer-events-none">
@@ -118,35 +91,18 @@ export const ProjectCard: React.FC<Props> = ({ project }) => {
           ))}
         </div>
         
-        {/* Navigation Overlays (Visible on Hover/Desktop) */}
         {images.length > 1 && (
           <>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-4 pointer-events-none">
-              <button 
-                onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                className="w-8 h-8 flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-all pointer-events-auto"
-              >
+              <button onClick={prevImage} className="w-8 h-8 flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-all pointer-events-auto">
                 <i className="fas fa-chevron-left text-[10px]"></i>
               </button>
-              <button 
-                onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                className="w-8 h-8 flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-all pointer-events-auto"
-              >
+              <button onClick={nextImage} className="w-8 h-8 flex items-center justify-center bg-black/50 text-white rounded-full hover:bg-white hover:text-black transition-all pointer-events-auto">
                 <i className="fas fa-chevron-right text-[10px]"></i>
               </button>
             </div>
-            
-            {/* Slider Counter */}
             <div className="absolute bottom-4 right-4 bg-black/70 text-white px-2 py-1 text-[8px] font-black uppercase tracking-widest border border-white/20">
               {currentIndex + 1} / {images.length}
-            </div>
-            
-            {/* Progress Bar (Visual indicator) */}
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-white/10">
-              <div 
-                className="h-full bg-white transition-all duration-300" 
-                style={{ width: `${((currentIndex + 1) / images.length) * 100}%` }}
-              ></div>
             </div>
           </>
         )}

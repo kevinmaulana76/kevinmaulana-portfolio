@@ -1,15 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
-import { dbService } from '../services/supabase';
-import { Project, SiteSettings, DESIGN_CATEGORIES, DesignCategory } from '../types';
-import { ImageWithFallback } from '../components/ImageWithFallback';
-import { ProjectCard } from '../components/ProjectCard';
-import { getSocialIcon } from '../utils/icons';
+import { dbService } from '../services/supabase.ts';
+import { Project, SiteSettings, DESIGN_CATEGORIES, DesignCategory } from '../types.ts';
+import { ImageWithFallback } from '../components/ImageWithFallback.tsx';
+import { ProjectCard } from '../components/ProjectCard.tsx';
+import { getSocialIcon } from '../App.tsx';
 
 // --- SECTIONS ---
 
 const HeroSection: React.FC<{ settings: SiteSettings; projects: Project[] }> = ({ settings, projects }) => {
-  // Priority: 1. settings.heroImages, 2. projects images, 3. single heroImage fallback
   let displayImages = settings.heroImages?.filter(Boolean) || [];
   
   if (displayImages.length < 3) {
@@ -29,7 +27,6 @@ const HeroSection: React.FC<{ settings: SiteSettings; projects: Project[] }> = (
 
   return (
     <section className="relative min-h-screen bg-black flex flex-col items-center justify-center pt-24 overflow-hidden">
-      {/* Side Decorative Elements */}
       <div className="absolute left-8 bottom-12 flex flex-col gap-6 text-[#F5F5F0]/40 text-xs">
         {settings.socialLinks?.map(link => (
           <a key={link.id} href={link.url} target="_blank" title={link.label} className="hover:text-white transition-colors">
@@ -43,7 +40,6 @@ const HeroSection: React.FC<{ settings: SiteSettings; projects: Project[] }> = (
         <div className="w-[1px] h-12 bg-[#F5F5F0]/10"></div>
       </div>
 
-      {/* Central Visuals */}
       <div className="container mx-auto px-6 flex flex-col items-center">
         <div className="flex gap-4 md:gap-8 mb-12">
           {displayImages.slice(0, 3).map((img, idx) => (
@@ -116,12 +112,6 @@ const BioSection: React.FC<{ settings: SiteSettings }> = ({ settings }) => {
                   <span className="text-[#F5F5F0]/40">TEL</span>
                   <span>{settings?.phone}</span>
                 </div>
-                {settings.socialLinks?.map(link => (
-                  <div key={link.id} className="flex justify-between border-b border-[#F5F5F0]/10 pb-2">
-                    <span className="text-[#F5F5F0]/40 uppercase">{link.label.slice(0, 3)}</span>
-                    <span className="truncate ml-4">{link.label}</span>
-                  </div>
-                ))}
                 <div className="flex justify-between border-b border-[#F5F5F0]/10 pb-2">
                   <span className="text-[#F5F5F0]/40">LOC</span>
                   <span>{settings?.location}</span>
@@ -175,8 +165,6 @@ const PortfolioGrid: React.FC<{ projects: Project[] }> = ({ projects }) => {
     </section>
   );
 };
-
-// --- MAIN PAGE ---
 
 const Home: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);

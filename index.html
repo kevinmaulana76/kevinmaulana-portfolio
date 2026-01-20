@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,6 +7,36 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+  <script>
+    /**
+     * Essential Shims for Browser ESM
+     * Prevents "process is not defined" crashes in certain libraries.
+     */
+    window.process = { 
+      env: { 
+        NODE_ENV: 'production',
+        API_KEY: ''
+      } 
+    };
+    
+    /**
+     * Global Error Catching
+     * Surfaces deployment-specific errors (like ESM resolution issues) directly in the UI.
+     */
+    window.addEventListener('error', function(event) {
+      console.error('Bootstrap Error:', event.error);
+      const root = document.getElementById('root');
+      if (root && !root.children.length) {
+        root.innerHTML = `
+          <div style="padding: 40px; color: #fff; background: #000; font-family: 'Space Grotesk', sans-serif; text-align: center; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <h1 style="font-family: Anton, sans-serif; font-size: 3rem; color: #f00; margin-bottom: 20px;">SYSTEM HALTED</h1>
+            <p style="opacity: 0.6; max-width: 500px; line-height: 1.6; font-family: monospace; font-size: 0.8rem;">${event.message || 'Check browser console for detailed stack trace'}</p>
+            <button onclick="location.reload()" style="margin-top: 30px; padding: 10px 20px; border: 1px solid #fff; background: none; color: #fff; cursor: pointer; text-transform: uppercase; font-weight: bold;">Reboot System</button>
+          </div>
+        `;
+      }
+    });
+  </script>
   <style>
     :root {
       --bg-color: #000000;
@@ -17,6 +46,8 @@
       font-family: 'Space Grotesk', sans-serif; 
       background-color: var(--bg-color);
       color: var(--text-color);
+      margin: 0;
+      padding: 0;
     }
     .font-poster { font-family: 'Anton', sans-serif; text-transform: uppercase; line-height: 0.85; }
     .font-mono-style { font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.02em; }
@@ -30,26 +61,31 @@
     
     .text-huge { font-size: clamp(4rem, 20vw, 24rem); }
     
-    /* Animation for smooth transitions */
-    .page-transition { animation: fadeIn 0.6s ease-out; }
+    .page-transition { animation: fadeIn 0.8s ease-out forwards; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    [v-cloak] { display: none; }
   </style>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "react-router-dom": "https://esm.sh/react-router-dom@7.1.1?deps=react@19.0.0,react-dom@19.0.0",
+    "@google/genai": "https://esm.sh/@google/genai@1.37.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
-    "react-router-dom": "https://esm.sh/react-router-dom@^7.12.0"
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
 </head>
 <body class="antialiased overflow-x-hidden">
   <div id="root"></div>
+  <!-- Entry point loaded as ESM module -->
+  <script type="module" src="index.tsx"></script>
 </body>
 </html>
