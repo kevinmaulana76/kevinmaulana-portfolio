@@ -7,7 +7,12 @@ export const SystemDiagnostics: React.FC = () => {
 
   const check = async () => {
     setIsRefreshing(true);
+    // Membersihkan cache client lama agar membaca Env Var terbaru
+    dbService.resetClient();
+    
     try {
+      // Berikan jeda sedikit agar UI tidak berkedip terlalu cepat
+      await new Promise(r => setTimeout(r, 800));
       const res = await dbService.checkHealth();
       setHealth(res);
     } finally {
@@ -32,7 +37,7 @@ export const SystemDiagnostics: React.FC = () => {
       <div className="space-y-1.5">
         <div className="flex justify-between text-[10px] font-bold">
           <span className="opacity-40 uppercase">Database</span>
-          <span className={health?.db === 'online' ? 'text-green-500' : 'text-rose-500'}>
+          <span className={health?.db === 'online' ? 'text-green-500' : health?.db === 'unconfigured' ? 'text-rose-500 underline' : 'text-rose-500'}>
             {health?.db?.toUpperCase() || 'OFFLINE'}
           </span>
         </div>
@@ -43,10 +48,16 @@ export const SystemDiagnostics: React.FC = () => {
           </span>
         </div>
       </div>
+      
       {health?.db === 'unconfigured' && (
-        <div className="pt-2 border-t border-white/5">
-          <p className="text-[7px] text-rose-500/60 uppercase leading-tight italic">
-            Check SUPABASE_URL & ANON_KEY in Vercel settings and redeploy.
+        <div className="pt-2 border-t border-white/5 space-y-2">
+          <p className="text-[7px] text-rose-500 uppercase leading-tight italic font-bold">
+            CRITICAL: Keys not detected in browser environment.
+          </p>
+          <p className="text-[7px] text-white/30 uppercase leading-tight">
+            1. Check Vercel Env Vars.<br/>
+            2. Redepoy app to apply changes.<br/>
+            3. Ensure names are exact: VITE_SUPABASE_URL
           </p>
         </div>
       )}
