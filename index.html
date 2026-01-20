@@ -8,9 +8,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
   <script>
-    /**
-     * Essential Shims for Browser ESM
-     */
     window.process = { 
       env: { 
         NODE_ENV: 'production',
@@ -18,9 +15,6 @@
       } 
     };
     
-    /**
-     * Global Error Catching for Vercel Deployments
-     */
     window.addEventListener('error', function(event) {
       console.error('Bootstrap Error:', event.error);
       const root = document.getElementById('root');

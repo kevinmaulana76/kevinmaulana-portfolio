@@ -4,6 +4,8 @@ import { Project, SiteSettings, DESIGN_CATEGORIES, DesignCategory, SocialLink } 
 import { generateDescription } from '../services/gemini.ts';
 import { getSocialIcon } from '../App.tsx';
 
+const ADMIN_AUTH_KEY = 'kevin_portfolio_admin_auth_v1';
+
 // --- UTILITIES ---
 
 const compressImage = (file: File, maxWidth: number = 1000): Promise<string> => {
@@ -36,12 +38,13 @@ const compressImage = (file: File, maxWidth: number = 1000): Promise<string> => 
 // --- SUB-COMPONENTS ---
 
 const AuthGateway: React.FC<{ 
-  onSuccess: () => void;
+  onSuccess: (remember: boolean) => void;
   message: string;
   setMessage: (m: string) => void;
 }> = ({ onSuccess, message, setMessage }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [showReset, setShowReset] = useState(false);
@@ -50,7 +53,7 @@ const AuthGateway: React.FC<{
     e.preventDefault();
     const currentSettings = await dbService.getSettings();
     if (password === currentSettings.adminPassword) {
-      onSuccess();
+      onSuccess(rememberMe);
       setMessage('');
     } else {
       setMessage('INVALID ACCESS KEY');
@@ -97,6 +100,20 @@ const AuthGateway: React.FC<{
                 <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-xs`}></i>
               </button>
             </div>
+            
+            <div className="flex items-center gap-3">
+              <button 
+                type="button"
+                onClick={() => setRememberMe(!rememberMe)}
+                className={`w-4 h-4 border flex items-center justify-center transition-all ${rememberMe ? 'bg-white border-white' : 'border-[#F5F5F0]/20'}`}
+              >
+                {rememberMe && <i className="fas fa-check text-[10px] text-black"></i>}
+              </button>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-[#F5F5F0]/40 cursor-pointer" onClick={() => setRememberMe(!rememberMe)}>
+                Remember Access
+              </label>
+            </div>
+
             <button className="w-full py-4 bg-[#F5F5F0] text-black font-black text-xs uppercase tracking-[0.2em] hover:opacity-90 transition-all">Enter Dashboard</button>
             <button type="button" onClick={() => setShowReset(true)} className="w-full text-zinc-700 hover:text-white text-[10px] uppercase font-bold tracking-widest transition-colors mt-4">Forgotten Password?</button>
           </form>
@@ -301,6 +318,39 @@ const SiteConfigForm: React.FC<{ settings: SiteSettings; onSave: (s: SiteSetting
         </div>
       </div>
 
+      {/* NEW: CAPABILITIES SECTION */}
+      <div className="space-y-8">
+        <h3 className="text-xl font-poster border-b border-[#F5F5F0]/10 pb-4">CAPABILITIES</h3>
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase opacity-40">Key Expertises (One per line)</label>
+          <textarea 
+            value={form.capabilities} 
+            onChange={e => setForm({...form, capabilities: e.target.value})} 
+            className="w-full bg-black border border-[#F5F5F0]/20 p-4 h-32 focus:outline-none text-xs" 
+            placeholder="e.g. Social Media Design&#10;Poster Art&#10;Typography"
+          />
+        </div>
+      </div>
+
+      {/* NEW: CONTACT CHANNELS SECTION */}
+      <div className="space-y-8">
+        <h3 className="text-xl font-poster border-b border-[#F5F5F0]/10 pb-4">CHANNELS_CONFIG</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase opacity-40">Contact Email</label>
+            <input type="email" value={form.contactEmail} onChange={e => setForm({...form, contactEmail: e.target.value})} className="w-full bg-black border-b border-[#F5F5F0]/20 py-2 focus:outline-none focus:border-[#F5F5F0] transition-colors" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase opacity-40">Phone Number</label>
+            <input type="text" value={form.phone || ''} onChange={e => setForm({...form, phone: e.target.value})} className="w-full bg-black border-b border-[#F5F5F0]/20 py-2 focus:outline-none focus:border-[#F5F5F0] transition-colors" />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-[10px] font-black uppercase opacity-40">Physical / Base Location</label>
+            <input type="text" value={form.location || ''} onChange={e => setForm({...form, location: e.target.value})} className="w-full bg-black border-b border-[#F5F5F0]/20 py-2 focus:outline-none focus:border-[#F5F5F0] transition-colors" />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-8">
         <div className="flex justify-between items-center border-b border-[#F5F5F0]/10 pb-4">
           <h3 className="text-xl font-poster">NETWORKS</h3>
@@ -369,14 +419,33 @@ const Admin: React.FC = () => {
     setSettings(s);
   };
 
+  useEffect(() => {
+    const remembered = localStorage.getItem(ADMIN_AUTH_KEY);
+    if (remembered === 'true') {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
   useEffect(() => { if (isLoggedIn) loadData(); }, [isLoggedIn]);
 
-  if (!isLoggedIn) return <AuthGateway onSuccess={() => setIsLoggedIn(true)} message={message} setMessage={setMessage} />;
+  const handleLoginSuccess = (remember: boolean) => {
+    setIsLoggedIn(true);
+    if (remember) {
+      localStorage.setItem(ADMIN_AUTH_KEY, 'true');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem(ADMIN_AUTH_KEY);
+  };
+
+  if (!isLoggedIn) return <AuthGateway onSuccess={handleLoginSuccess} message={message} setMessage={setMessage} />;
 
   return (
     <div className="container mx-auto px-6 py-32 min-h-screen">
       <div className="flex flex-col lg:flex-row gap-16">
-        <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={() => setIsLoggedIn(false)} />
+        <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={handleLogout} />
         <div className="flex-grow">
           {message && <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] px-8 py-4 bg-white text-black border border-black uppercase text-[10px] font-black animate-bounce shadow-2xl">{message}</div>}
           {activeTab === 'projects' ? <ProjectManager projects={projects} onRefresh={loadData} setMessage={setMessage} /> : settings && <SiteConfigForm settings={settings} onSave={dbService.updateSettings} setMessage={setMessage} />}
