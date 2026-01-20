@@ -18,6 +18,7 @@ export interface SiteSettings {
   siteName: string;
   designerName: string;
   bio: string;
+  heroSubtext?: string; // New: Dedicated text field for the hero section
   heroImage: string;
   heroImages?: string[];
   contactEmail: string;
@@ -29,7 +30,7 @@ export interface SiteSettings {
   location?: string;
   capabilities?: string;
   adminPassword?: string;
-  recoveryToken?: string; // New: Secret for resetting password
+  recoveryToken?: string;
   hideAdminLink?: boolean;
 }
 

@@ -3,7 +3,6 @@ import { dbService } from '../services/supabase.ts';
 import { Project, SiteSettings, DESIGN_CATEGORIES, DesignCategory } from '../types.ts';
 import { ImageWithFallback } from '../components/ImageWithFallback.tsx';
 import { ProjectCard } from '../components/ProjectCard.tsx';
-// Fix: Import getSocialIcon from utils/helpers.ts instead of App.tsx which does not export it
 import { getSocialIcon } from '../utils/helpers.ts';
 
 // --- SECTIONS ---
@@ -57,8 +56,8 @@ const HeroSection: React.FC<{ settings: SiteSettings; projects: Project[] }> = (
           <h1 className="text-5xl md:text-7xl lg:text-9xl font-poster tracking-tighter mb-4">
             {settings.siteName || 'MY PORTFOLIO'}
           </h1>
-          <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-[#F5F5F0]/40 mb-12 max-w-lg mx-auto leading-relaxed">
-            HELLO I AM {settings.designerName?.toUpperCase()} <br/> {settings.bio?.slice(0, 50).toUpperCase()}...
+          <p className="text-[10px] md:text-xs font-black uppercase tracking-[0.5em] text-[#F5F5F0]/40 mb-12 max-w-lg mx-auto leading-relaxed whitespace-pre-line">
+            {settings.heroSubtext ? settings.heroSubtext.toUpperCase() : `HELLO I AM ${settings.designerName?.toUpperCase()}`}
           </p>
           
           <button 

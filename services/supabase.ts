@@ -96,6 +96,7 @@ export const dbService = {
         siteName: 'KEVIN MAULANA',
         designerName: 'Kevin Maulana',
         bio: 'Portfolio configuration pending...',
+        heroSubtext: 'HELLO I AM KEVIN MAULANA. DESIGNER FOCUSED ON VISUAL IMPACT.',
         contactEmail: 'hello@example.com',
         socialLinks: [],
         instagramUrl: '',
@@ -127,8 +128,9 @@ export const dbService = {
       siteName: data.site_name,
       designerName: data.designer_name,
       bio: data.bio,
+      heroSubtext: data.hero_subtext,
       heroImage: data.hero_image,
-      heroImages: data.hero_images,
+      heroImages: data.hero_images || [],
       contactEmail: data.contact_email,
       socialLinks: data.social_links || [],
       phone: data.phone,
@@ -148,6 +150,7 @@ export const dbService = {
     if (updates.siteName !== undefined) payload.site_name = updates.siteName;
     if (updates.designerName !== undefined) payload.designer_name = updates.designerName;
     if (updates.bio !== undefined) payload.bio = updates.bio;
+    if (updates.heroSubtext !== undefined) payload.hero_subtext = updates.heroSubtext;
     if (updates.contactEmail !== undefined) payload.contact_email = updates.contactEmail;
     if (updates.phone !== undefined) payload.phone = updates.phone;
     if (updates.location !== undefined) payload.location = updates.location;
@@ -156,6 +159,8 @@ export const dbService = {
     if (updates.adminPassword !== undefined) payload.admin_password = updates.adminPassword;
     if (updates.recoveryToken !== undefined) payload.recovery_token = updates.recoveryToken;
     if (updates.hideAdminLink !== undefined) payload.hide_admin_link = updates.hideAdminLink;
+    if (updates.heroImages !== undefined) payload.hero_images = updates.heroImages;
+    if (updates.heroImage !== undefined) payload.hero_image = updates.heroImage;
 
     const { error } = await supabase
       .from('site_settings')
